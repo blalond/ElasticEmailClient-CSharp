@@ -683,6 +683,24 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
+            /// Purchase a private IP for your Account
+            /// </summary>
+            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <param name="region">Region of the IP Address (NA and EU currently available)</param>
+            /// <returns>ApiTypes.PrivateIP</returns>
+            public static ApiTypes.PrivateIP PurchasePrivateIP(string region = null)
+            {
+                WebClient client = new CustomWebClient();
+                NameValueCollection values = new NameValueCollection();
+                values.Add("apikey", Api.ApiKey);
+                if (region != null) values.Add("region", region);
+                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/account/purchaseprivateip", values);
+                ApiResponse<ApiTypes.PrivateIP> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.PrivateIP>>(Encoding.UTF8.GetString(apiResponse));
+                if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
+            }
+
+            /// <summary>
             /// Remove email, template or litmus credits from a sub-account
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
@@ -1074,7 +1092,8 @@ namespace ElasticEmailClient
             /// <param name="fileFormat"></param>
             /// <param name="compressionFormat">FileResponse compression format. None or Zip.</param>
             /// <param name="fileName">Name of your file.</param>
-            public static void Export(IEnumerable<string> campaignNames, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null)
+            /// <returns>ApiTypes.ExportLink</returns>
+            public static ApiTypes.ExportLink Export(IEnumerable<string> campaignNames, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -1084,8 +1103,9 @@ namespace ElasticEmailClient
                 if (compressionFormat != ApiTypes.CompressionFormat.None) values.Add("compressionFormat", compressionFormat.ToString());
                 if (fileName != null) values.Add("fileName", fileName);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/campaign/export", values);
-                ApiResponse<VoidApiResponse> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<VoidApiResponse>>(Encoding.UTF8.GetString(apiResponse));
+                ApiResponse<ApiTypes.ExportLink> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.ExportLink>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
             }
 
             /// <summary>
@@ -1315,13 +1335,12 @@ namespace ElasticEmailClient
             /// <param name="industry">Industry contact works in</param>
             /// <param name="numberOfEmployees">Number of employees</param>
             /// <param name="type"></param>
-            /// <param name="return_Url"></param>
-            /// <param name="source_Url">The url for activation for private branding.</param>
-            /// <param name="activation_Return_Url">The url to return the contact to after activation.</param>
-            /// <param name="activation_Template">The custom template for double optin-in activation. Requires {url} merge tag.</param>
-            /// <param name="requiresActivation">True, if you want to send an activation notice to double opt-in the contact. Otherwise, false</param>
+            /// <param name="returnUrl">URL to navigate to after account creation</param>
+            /// <param name="sourceUrl">URL from which request was sent.</param>
+            /// <param name="activationReturnUrl"></param>
+            /// <param name="activationTemplate"></param>
             /// <returns>string</returns>
-            public static string Add(string publicAccountID, string email, string[] publicListID = null, string[] listName = null, string title = null, string firstName = null, string lastName = null, string phone = null, string mobileNumber = null, string notes = null, string gender = null, DateTime? birthDate = null, string city = null, string state = null, string postalCode = null, string country = null, string organizationName = null, string website = null, int? annualRevenue = 0, string industry = null, int? numberOfEmployees = 0, ApiTypes.ContactSource type = ApiTypes.ContactSource.Unknown, string return_Url = null, string source_Url = null, string activation_Return_Url = null, string activation_Template = null, bool requiresActivation = true)
+            public static string Add(string publicAccountID, string email, string[] publicListID = null, string[] listName = null, string title = null, string firstName = null, string lastName = null, string phone = null, string mobileNumber = null, string notes = null, string gender = null, DateTime? birthDate = null, string city = null, string state = null, string postalCode = null, string country = null, string organizationName = null, string website = null, int? annualRevenue = 0, string industry = null, int? numberOfEmployees = 0, ApiTypes.ContactSource type = ApiTypes.ContactSource.Unknown, string returnUrl = null, string sourceUrl = null, string activationReturnUrl = null, string activationTemplate = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -1360,11 +1379,10 @@ namespace ElasticEmailClient
                 if (industry != null) values.Add("industry", industry);
                 if (numberOfEmployees != 0) values.Add("numberOfEmployees", numberOfEmployees.ToString());
                 if (type != ApiTypes.ContactSource.Unknown) values.Add("type", type.ToString());
-                if (return_Url != null) values.Add("return_Url", return_Url);
-                if (source_Url != null) values.Add("source_Url", source_Url);
-                if (activation_Return_Url != null) values.Add("activation_Return_Url", activation_Return_Url);
-                if (activation_Template != null) values.Add("activation_Template", activation_Template);
-                if (requiresActivation != true) values.Add("requiresActivation", requiresActivation.ToString());
+                if (returnUrl != null) values.Add("returnUrl", returnUrl);
+                if (sourceUrl != null) values.Add("sourceUrl", sourceUrl);
+                if (activationReturnUrl != null) values.Add("activationReturnUrl", activationReturnUrl);
+                if (activationTemplate != null) values.Add("activationTemplate", activationTemplate);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/contact/add", values);
                 ApiResponse<string> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<string>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -1992,7 +2010,7 @@ namespace ElasticEmailClient
             /// <param name="channel">An ID field (max 60 chars) that can be used for reporting [will default to HTTP API or SMTP API]</param>
             /// <param name="bodyHtml">Html email body</param>
             /// <param name="bodyText">Text email body</param>
-            /// <param name="charset">Text value of charset encoding for example: iso-8859-1, windows-1251, utf-8, us-ascii, windows-1250 and more…</param>
+            /// <param name="charset">Text value of charset encoding for example: iso-8859-1, windows-1251, utf-8, us-ascii, windows-1250 and moreâ€¦</param>
             /// <param name="charsetBodyHtml">Sets charset for body html MIME part (overrides default value from charset parameter)</param>
             /// <param name="charsetBodyText">Sets charset for body text MIME part (overrides default value from charset parameter)</param>
             /// <param name="encodingType">0 for None, 1 for Raw7Bit, 2 for Raw8Bit, 3 for QuotedPrintable, 4 for Base64 (Default), 5 for Uue  note that you can also provide the text version such as "Raw7Bit" for value 1.  NOTE: Base64 or QuotedPrintable is recommended if you are validating your domain(s) with DKIM.</param>
@@ -2072,7 +2090,7 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
-            /// Detailed status of a unique email sent through your account.
+            /// Detailed status of a unique email sent through your account. Returns a 'Email has expired and the status is unknown.' error, if the email has not been fully processed yet.
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="messageID">Unique identifier for this email.</param>
@@ -2443,6 +2461,78 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
+            /// Export email log information to the specified file format.
+            /// </summary>
+            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <param name="statuses">List of comma separated message statuses: 0 or all, 1 for ReadyToSend, 2 for InProgress, 4 for Bounced, 5 for Sent, 6 for Opened, 7 for Clicked, 8 for Unsubscribed, 9 for Abuse Report</param>
+            /// <param name="fileFormat"></param>
+            /// <param name="from">Start date.</param>
+            /// <param name="to">End date.</param>
+            /// <param name="channelID">ID number of selected Channel.</param>
+            /// <param name="limit">Maximum of loaded items.</param>
+            /// <param name="offset">How many items should be loaded ahead.</param>
+            /// <param name="includeEmail">True: Search includes emails. Otherwise, false.</param>
+            /// <param name="includeSms">True: Search includes SMS. Otherwise, false.</param>
+            /// <param name="messageCategory">ID of message category</param>
+            /// <param name="compressionFormat">FileResponse compression format. None or Zip.</param>
+            /// <param name="fileName">Name of your file.</param>
+            /// <param name="email">Proper email address.</param>
+            /// <returns>ApiTypes.ExportLink</returns>
+            public static ApiTypes.ExportLink Export(IEnumerable<ApiTypes.LogJobStatus> statuses, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, DateTime? from = null, DateTime? to = null, int channelID = 0, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<int> messageCategory = null, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null, string email = null)
+            {
+                WebClient client = new CustomWebClient();
+                NameValueCollection values = new NameValueCollection();
+                values.Add("apikey", Api.ApiKey);
+                values.Add("statuses", string.Join(",", statuses));
+                if (fileFormat != ApiTypes.ExportFileFormats.Csv) values.Add("fileFormat", fileFormat.ToString());
+                if (from != null) values.Add("from", from.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                if (to != null) values.Add("to", to.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                if (channelID != 0) values.Add("channelID", channelID.ToString());
+                if (limit != 0) values.Add("limit", limit.ToString());
+                if (offset != 0) values.Add("offset", offset.ToString());
+                if (includeEmail != true) values.Add("includeEmail", includeEmail.ToString());
+                if (includeSms != true) values.Add("includeSms", includeSms.ToString());
+                if (messageCategory != null) values.Add("messageCategory", string.Join(",", messageCategory));
+                if (compressionFormat != ApiTypes.CompressionFormat.None) values.Add("compressionFormat", compressionFormat.ToString());
+                if (fileName != null) values.Add("fileName", fileName);
+                if (email != null) values.Add("email", email);
+                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/log/export", values);
+                ApiResponse<ApiTypes.ExportLink> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.ExportLink>>(Encoding.UTF8.GetString(apiResponse));
+                if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
+            }
+
+            /// <summary>
+            /// Export detailed link tracking information to the specified file format.
+            /// </summary>
+            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <param name="channelID">ID number of selected Channel.</param>
+            /// <param name="from">Start date.</param>
+            /// <param name="to">End Date.</param>
+            /// <param name="fileFormat"></param>
+            /// <param name="limit">Maximum of loaded items.</param>
+            /// <param name="offset">How many items should be loaded ahead.</param>
+            /// <param name="compressionFormat">FileResponse compression format. None or Zip.</param>
+            /// <param name="fileName">Name of your file.</param>
+            public static void ExportLinkTracking(int channelID, DateTime? from, DateTime? to, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, int limit = 0, int offset = 0, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null)
+            {
+                WebClient client = new CustomWebClient();
+                NameValueCollection values = new NameValueCollection();
+                values.Add("apikey", Api.ApiKey);
+                values.Add("channelID", channelID.ToString());
+                values.Add("from", from.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                values.Add("to", to.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                if (fileFormat != ApiTypes.ExportFileFormats.Csv) values.Add("fileFormat", fileFormat.ToString());
+                if (limit != 0) values.Add("limit", limit.ToString());
+                if (offset != 0) values.Add("offset", offset.ToString());
+                if (compressionFormat != ApiTypes.CompressionFormat.None) values.Add("compressionFormat", compressionFormat.ToString());
+                if (fileName != null) values.Add("fileName", fileName);
+                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/log/exportlinktracking", values);
+                ApiResponse<VoidApiResponse> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<VoidApiResponse>>(Encoding.UTF8.GetString(apiResponse));
+                if (!apiRet.success) throw new ApplicationException(apiRet.error);
+            }
+
+            /// <summary>
             /// Track link clicks
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
@@ -2481,8 +2571,9 @@ namespace ElasticEmailClient
             /// <param name="includeEmail">True: Search includes emails. Otherwise, false.</param>
             /// <param name="includeSms">True: Search includes SMS. Otherwise, false.</param>
             /// <param name="messagecategory">ID of message category</param>
+            /// <param name="email">Proper email address.</param>
             /// <returns>ApiTypes.Log</returns>
-            public static ApiTypes.Log Load(IEnumerable<ApiTypes.LogJobStatus> statuses, DateTime? from = null, DateTime? to = null, string channelName = null, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<int> messagecategory = null)
+            public static ApiTypes.Log Load(IEnumerable<ApiTypes.LogJobStatus> statuses, DateTime? from = null, DateTime? to = null, string channelName = null, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<int> messagecategory = null, string email = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -2496,6 +2587,7 @@ namespace ElasticEmailClient
                 if (includeEmail != true) values.Add("includeEmail", includeEmail.ToString());
                 if (includeSms != true) values.Add("includeSms", includeSms.ToString());
                 if (messagecategory != null) values.Add("messagecategory", string.Join(",", messagecategory));
+                if (email != null) values.Add("email", email);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/log/load", values);
                 ApiResponse<ApiTypes.Log> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.Log>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -2619,13 +2711,17 @@ namespace ElasticEmailClient
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="includeHistory">True: Include history of last 30 days. Otherwise, false.</param>
+            /// <param name="from">From what date should the segment history be shown</param>
+            /// <param name="to">To what date should the segment history be shown</param>
             /// <returns>List(ApiTypes.Segment)</returns>
-            public static List<ApiTypes.Segment> List(bool includeHistory = false)
+            public static List<ApiTypes.Segment> List(bool includeHistory = false, DateTime? from = null, DateTime? to = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
                 if (includeHistory != false) values.Add("includeHistory", includeHistory.ToString());
+                if (from != null) values.Add("from", from.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                if (to != null) values.Add("to", to.Value.ToString("M/d/yyyy h:mm:ss tt"));
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/segment/list", values);
                 ApiResponse<List<ApiTypes.Segment>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.Segment>>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -2734,7 +2830,8 @@ namespace ElasticEmailClient
             /// <param name="fileName">Name of your file.</param>
             /// <param name="fileFormat"></param>
             /// <param name="compressionFormat">FileResponse compression format. None or Zip.</param>
-            public static void Export(Guid publicSurveyID, string fileName, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None)
+            /// <returns>ApiTypes.ExportLink</returns>
+            public static ApiTypes.ExportLink Export(Guid publicSurveyID, string fileName, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -2744,8 +2841,9 @@ namespace ElasticEmailClient
                 if (fileFormat != ApiTypes.ExportFileFormats.Csv) values.Add("fileFormat", fileFormat.ToString());
                 if (compressionFormat != ApiTypes.CompressionFormat.None) values.Add("compressionFormat", compressionFormat.ToString());
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/survey/export", values);
-                ApiResponse<VoidApiResponse> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<VoidApiResponse>>(Encoding.UTF8.GetString(apiResponse));
+                ApiResponse<ApiTypes.ExportLink> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.ExportLink>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
             }
 
             /// <summary>
@@ -4975,7 +5073,7 @@ namespace ElasticEmailClient
     public enum EncodingType
     {
         /// <summary>
-        /// Encoding of th eemail is provided by the sender and not altered.
+        /// Encoding of the email is provided by the sender and not altered.
         /// </summary>
         UserProvided = -1,
 
@@ -5475,6 +5573,33 @@ namespace ElasticEmailClient
     }
 
     /// <summary>
+    /// Private IP Address
+    /// </summary>
+    public class PrivateIP
+    {
+        /// <summary>
+        /// Assigned Private IP address.
+        /// </summary>
+        public string IPAddress;
+
+        /// <summary>
+        /// Link to Sender Score for this IP address to view external reputation.
+        /// </summary>
+        public string SenderScore;
+
+        /// <summary>
+        /// Link to MX ToolBox blacklist check for this IP address.
+        /// </summary>
+        public string MXToolBox;
+
+        /// <summary>
+        /// Configuration information to set up a custom rDNS A record.
+        /// </summary>
+        public string rDNSConfiguration;
+
+    }
+
+    /// <summary>
     /// 
     /// </summary>
     public enum QuestionType
@@ -5837,6 +5962,36 @@ namespace ElasticEmailClient
         /// Number of items.
         /// </summary>
         public long Count;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public long EngagedCount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public long ActiveCount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public long BouncedCount;
+
+        /// <summary>
+        /// Total emails clicked
+        /// </summary>
+        public long UnsubscribedCount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public long AbuseCount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public long InactiveCount;
 
     }
 

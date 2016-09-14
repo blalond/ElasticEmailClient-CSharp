@@ -2362,12 +2362,16 @@ namespace ElasticEmailClient
             /// Shows all your existing lists
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <param name="from">Starting date for search in YYYY-MM-DDThh:mm:ss format.</param>
+            /// <param name="to">Ending date for search in YYYY-MM-DDThh:mm:ss format.</param>
             /// <returns>List(ApiTypes.List)</returns>
-            public static List<ApiTypes.List> list()
+            public static List<ApiTypes.List> list(DateTime? from = null, DateTime? to = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
+                if (from != null) values.Add("from", from.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                if (to != null) values.Add("to", to.Value.ToString("M/d/yyyy h:mm:ss tt"));
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/list/list", values);
                 ApiResponse<List<ApiTypes.List>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.List>>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);

@@ -1650,13 +1650,17 @@ namespace ElasticEmailClient
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="email">Proper email address.</param>
+            /// <param name="limit">Maximum of loaded items.</param>
+            /// <param name="offset">How many items should be loaded ahead.</param>
             /// <returns>List(ApiTypes.ContactHistory)</returns>
-            public static List<ApiTypes.ContactHistory> LoadHistory(string email)
+            public static List<ApiTypes.ContactHistory> LoadHistory(string email, int limit = 0, int offset = 0)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
                 values.Add("email", email);
+                if (limit != 0) values.Add("limit", limit.ToString());
+                if (offset != 0) values.Add("offset", offset.ToString());
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/contact/loadhistory", values);
                 ApiResponse<List<ApiTypes.ContactHistory>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.ContactHistory>>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -1672,6 +1676,7 @@ namespace ElasticEmailClient
             /// <param name="lastName">Last name.</param>
             /// <param name="title">Title</param>
             /// <param name="organization">Name of organization</param>
+            /// <param name="industry">Industry contact works in</param>
             /// <param name="city">City.</param>
             /// <param name="country">Name of country.</param>
             /// <param name="state">State or province.</param>
@@ -1679,7 +1684,7 @@ namespace ElasticEmailClient
             /// <param name="listID">ID number of selected list.</param>
             /// <param name="status">Name of status: Active, Engaged, Inactive, Abuse, Bounced, Unsubscribed.</param>
             /// <param name="notes">Free form field of notes</param>
-            public static void QuickAdd(IEnumerable<string> emails, string firstName = null, string lastName = null, string title = null, string organization = null, string city = null, string country = null, string state = null, string zip = null, int listID = 0, ApiTypes.ContactStatus status = ApiTypes.ContactStatus.Active, string notes = null)
+            public static void QuickAdd(IEnumerable<string> emails, string firstName = null, string lastName = null, string title = null, string organization = null, string industry = null, string city = null, string country = null, string state = null, string zip = null, int listID = 0, ApiTypes.ContactStatus status = ApiTypes.ContactStatus.Active, string notes = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -1689,6 +1694,7 @@ namespace ElasticEmailClient
                 if (lastName != null) values.Add("lastName", lastName);
                 if (title != null) values.Add("title", title);
                 if (organization != null) values.Add("organization", organization);
+                if (industry != null) values.Add("industry", industry);
                 if (city != null) values.Add("city", city);
                 if (country != null) values.Add("country", country);
                 if (state != null) values.Add("state", state);

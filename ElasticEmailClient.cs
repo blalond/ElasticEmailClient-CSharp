@@ -1334,13 +1334,13 @@ namespace ElasticEmailClient
             /// <param name="annualRevenue">Annual revenue of contact</param>
             /// <param name="industry">Industry contact works in</param>
             /// <param name="numberOfEmployees">Number of employees</param>
-            /// <param name="type"></param>
+            /// <param name="source">Specifies the way of uploading the contact</param>
             /// <param name="returnUrl">URL to navigate to after account creation</param>
             /// <param name="sourceUrl">URL from which request was sent.</param>
             /// <param name="activationReturnUrl"></param>
             /// <param name="activationTemplate"></param>
             /// <returns>string</returns>
-            public static string Add(string publicAccountID, string email, string[] publicListID = null, string[] listName = null, string title = null, string firstName = null, string lastName = null, string phone = null, string mobileNumber = null, string notes = null, string gender = null, DateTime? birthDate = null, string city = null, string state = null, string postalCode = null, string country = null, string organizationName = null, string website = null, int? annualRevenue = 0, string industry = null, int? numberOfEmployees = 0, ApiTypes.ContactSource type = ApiTypes.ContactSource.Unknown, string returnUrl = null, string sourceUrl = null, string activationReturnUrl = null, string activationTemplate = null)
+            public static string Add(string publicAccountID, string email, string[] publicListID = null, string[] listName = null, string title = null, string firstName = null, string lastName = null, string phone = null, string mobileNumber = null, string notes = null, string gender = null, DateTime? birthDate = null, string city = null, string state = null, string postalCode = null, string country = null, string organizationName = null, string website = null, int? annualRevenue = 0, string industry = null, int? numberOfEmployees = 0, ApiTypes.ContactSource source = ApiTypes.ContactSource.Unknown, string returnUrl = null, string sourceUrl = null, string activationReturnUrl = null, string activationTemplate = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -1378,7 +1378,7 @@ namespace ElasticEmailClient
                 if (annualRevenue != 0) values.Add("annualRevenue", annualRevenue.ToString());
                 if (industry != null) values.Add("industry", industry);
                 if (numberOfEmployees != 0) values.Add("numberOfEmployees", numberOfEmployees.ToString());
-                if (type != ApiTypes.ContactSource.Unknown) values.Add("type", type.ToString());
+                if (source != ApiTypes.ContactSource.Unknown) values.Add("source", source.ToString());
                 if (returnUrl != null) values.Add("returnUrl", returnUrl);
                 if (sourceUrl != null) values.Add("sourceUrl", sourceUrl);
                 if (activationReturnUrl != null) values.Add("activationReturnUrl", activationReturnUrl);
@@ -2006,7 +2006,7 @@ namespace ElasticEmailClient
             /// <param name="msgFromName">Optional parameter. Sets FROM name of MIME header.</param>
             /// <param name="replyTo">Email address to reply to</param>
             /// <param name="replyToName">Display name of the reply to address</param>
-            /// <param name="to">List of email recipients (each email is treated separately, like a BCC). Separated by comma or semicolon.</param>
+            /// <param name="to">List of email recipients (each email is treated separately, like a BCC). Separated by comma or semicolon. We suggest using the "msgTo" parameter if backward compatibility with API version 1 is not a must.</param>
             /// <param name="msgTo">Optional parameter. Will be ignored if the 'to' parameter is also provided. List of email recipients (visible to all other recipients of the message as TO MIME header). Separated by comma or semicolon.</param>
             /// <param name="msgCC">Optional parameter. Will be ignored if the 'to' parameter is also provided. List of email recipients (visible to all other recipients of the message as CC MIME header). Separated by comma or semicolon.</param>
             /// <param name="msgBcc">Optional parameter. Will be ignored if the 'to' parameter is also provided. List of email recipients (each email is treated seperately). Separated by comma or semicolon.</param>
@@ -3057,12 +3057,12 @@ namespace ElasticEmailClient
             /// <param name="limit">Maximum of loaded items.</param>
             /// <param name="offset">How many items should be loaded ahead.</param>
             /// <returns>ApiTypes.TemplateList</returns>
-            public static ApiTypes.TemplateList GetList(int limit = 200, int offset = 0)
+            public static ApiTypes.TemplateList GetList(int limit = 500, int offset = 0)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
-                if (limit != 200) values.Add("limit", limit.ToString());
+                if (limit != 500) values.Add("limit", limit.ToString());
                 if (offset != 0) values.Add("offset", offset.ToString());
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/template/getlist", values);
                 ApiResponse<ApiTypes.TemplateList> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.TemplateList>>(Encoding.UTF8.GetString(apiResponse));

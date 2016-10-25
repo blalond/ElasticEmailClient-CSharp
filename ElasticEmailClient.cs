@@ -750,6 +750,8 @@ namespace ElasticEmailClient
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="enableClickTracking">True, if you want to track clicks. Otherwise, false</param>
             /// <param name="enableLinkClickTracking">True, if you want to track by link tracking. Otherwise, false</param>
+            /// <param name="manageSubscriptions">True, if you want to display your labels on your unsubscribe form. Otherwise, false</param>
+            /// <param name="manageSubscribedOnly">True, if you want to only display labels that the contact is subscribed to on your unsubscribe form. Otherwise, false</param>
             /// <param name="skipListUnsubscribe">True, if you do not want to use list-unsubscribe headers. Otherwise, false</param>
             /// <param name="autoTextFromHtml">True, if text BODY of message should be created automatically. Otherwise, false</param>
             /// <param name="allowCustomHeaders">True, if you want to apply custom headers to your emails. Otherwise, false</param>
@@ -772,13 +774,15 @@ namespace ElasticEmailClient
             /// <param name="enableContactFeatures">True, if you want to use Advanced Tools.  Otherwise, false</param>
             /// <param name="notificationsEmails">Email addresses to send a copy of all notifications from our system. Separated by semicolon</param>
             /// <returns>ApiTypes.AdvancedOptions</returns>
-            public static ApiTypes.AdvancedOptions UpdateAdvancedOptions(bool? enableClickTracking = null, bool? enableLinkClickTracking = null, bool? skipListUnsubscribe = null, bool? autoTextFromHtml = null, bool? allowCustomHeaders = null, string bccEmail = "", string contentTransferEncoding = null, bool? emailNotificationForError = null, string emailNotificationEmail = "", string webNotificationUrl = "", bool? webNotificationForSent = null, bool? webNotificationForOpened = null, bool? webNotificationForClicked = null, bool? webNotificationForUnsubscribed = null, bool? webNotificationForAbuseReport = null, bool? webNotificationForError = null, string hubCallBackUrl = "", string inboundDomain = "", bool? inboundContactsOnly = null, bool? lowCreditNotification = null, bool? enableUITooltips = null, bool? enableContactFeatures = null, string notificationsEmails = "")
+            public static ApiTypes.AdvancedOptions UpdateAdvancedOptions(bool? enableClickTracking = null, bool? enableLinkClickTracking = null, bool? manageSubscriptions = null, bool? manageSubscribedOnly = null, bool? skipListUnsubscribe = null, bool? autoTextFromHtml = null, bool? allowCustomHeaders = null, string bccEmail = "", string contentTransferEncoding = null, bool? emailNotificationForError = null, string emailNotificationEmail = "", string webNotificationUrl = "", bool? webNotificationForSent = null, bool? webNotificationForOpened = null, bool? webNotificationForClicked = null, bool? webNotificationForUnsubscribed = null, bool? webNotificationForAbuseReport = null, bool? webNotificationForError = null, string hubCallBackUrl = "", string inboundDomain = "", bool? inboundContactsOnly = null, bool? lowCreditNotification = null, bool? enableUITooltips = null, bool? enableContactFeatures = null, string notificationsEmails = "")
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
                 if (enableClickTracking != null) values.Add("enableClickTracking", enableClickTracking.ToString());
                 if (enableLinkClickTracking != null) values.Add("enableLinkClickTracking", enableLinkClickTracking.ToString());
+                if (manageSubscriptions != null) values.Add("manageSubscriptions", manageSubscriptions.ToString());
+                if (manageSubscribedOnly != null) values.Add("manageSubscribedOnly", manageSubscribedOnly.ToString());
                 if (skipListUnsubscribe != null) values.Add("skipListUnsubscribe", skipListUnsubscribe.ToString());
                 if (autoTextFromHtml != null) values.Add("autoTextFromHtml", autoTextFromHtml.ToString());
                 if (allowCustomHeaders != null) values.Add("allowCustomHeaders", allowCustomHeaders.ToString());
@@ -2038,12 +2042,12 @@ namespace ElasticEmailClient
             /// <param name="encodingType">0 for None, 1 for Raw7Bit, 2 for Raw8Bit, 3 for QuotedPrintable, 4 for Base64 (Default), 5 for Uue  note that you can also provide the text version such as "Raw7Bit" for value 1.  NOTE: Base64 or QuotedPrintable is recommended if you are validating your domain(s) with DKIM.</param>
             /// <param name="template">The name of an email template you have created in your account.</param>
             /// <param name="attachmentFiles">Attachment files. These files should be provided with the POST multipart file upload, not directly in the request's URL. Should also include merge CSV file</param>
-            /// <param name="headers">Optional Custom Headers. Request parameters prefixed by headers_ like headers_customheader1, headers_customheader2. Note: a space is required after the colon before the custom header value. headers_customheader1=customheader1: header-value1 headers_customheader2 = customheader2: header-value2</param>
+            /// <param name="headers_customheadername">Optional Custom Headers. Request parameters prefixed by headers_ like headers_customheader1, headers_customheader2. Note: a space is required after the colon before the custom header value. headers_customheader1=customheader1: header-value1 headers_customheader2 = customheader2: header-value2</param>
             /// <param name="postBack">Optional header returned in notifications.</param>
             /// <param name="merge">Request parameters prefixed by merge_ like merge_firstname, merge_lastname. If sending to a template you can send merge_ fields to merge data with the template. Template fields are entered with {firstname}, {lastname} etc.</param>
             /// <param name="timeOffSetMinutes">Number of minutes in the future this email should be sent</param>
             /// <returns>ApiTypes.EmailSend</returns>
-            public static ApiTypes.EmailSend Send(string subject = null, string from = null, string fromName = null, string sender = null, string senderName = null, string msgFrom = null, string msgFromName = null, string replyTo = null, string replyToName = null, IEnumerable<string> to = null, string[] msgTo = null, string[] msgCC = null, string[] msgBcc = null, IEnumerable<string> lists = null, IEnumerable<string> segments = null, string mergeSourceFilename = null, string channel = null, string bodyHtml = null, string bodyText = null, string charset = null, string charsetBodyHtml = null, string charsetBodyText = null, ApiTypes.EncodingType encodingType = ApiTypes.EncodingType.None, string template = null, IEnumerable<ApiTypes.FileData> attachmentFiles = null, Dictionary<string, string> headers = null, string postBack = null, Dictionary<string, string> merge = null, string timeOffSetMinutes = null)
+            public static ApiTypes.EmailSend Send(string subject = null, string from = null, string fromName = null, string sender = null, string senderName = null, string msgFrom = null, string msgFromName = null, string replyTo = null, string replyToName = null, IEnumerable<string> to = null, string[] msgTo = null, string[] msgCC = null, string[] msgBcc = null, IEnumerable<string> lists = null, IEnumerable<string> segments = null, string mergeSourceFilename = null, string channel = null, string bodyHtml = null, string bodyText = null, string charset = null, string charsetBodyHtml = null, string charsetBodyText = null, ApiTypes.EncodingType encodingType = ApiTypes.EncodingType.None, string template = null, IEnumerable<ApiTypes.FileData> attachmentFiles = null, Dictionary<string, string> headers_customheadername = null, string postBack = null, Dictionary<string, string> merge = null, string timeOffSetMinutes = null)
             {
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
@@ -2089,11 +2093,11 @@ namespace ElasticEmailClient
                 if (charsetBodyText != null) values.Add("charsetBodyText", charsetBodyText);
                 if (encodingType != ApiTypes.EncodingType.None) values.Add("encodingType", encodingType.ToString());
                 if (template != null) values.Add("template", template);
-                if (headers != null)
+                if (headers_customheadername != null)
                 {
-                    foreach (KeyValuePair<string, string> _item in headers)
+                    foreach (KeyValuePair<string, string> _item in headers_customheadername)
                     {
-                        values.Add("headers_" + _item.Key, _item.Value);
+                        values.Add("headers_customheadername_" + _item.Key, _item.Value);
                     }
                 }
                 if (postBack != null) values.Add("postBack", postBack);
@@ -3650,6 +3654,16 @@ namespace ElasticEmailClient
         /// True, if you want to enable list-unsubscribe header. Otherwise, false
         /// </summary>
         public bool EnableUnsubscribeHeader;
+
+        /// <summary>
+        /// True, if you want to display your labels on your unsubscribe form. Otherwise, false
+        /// </summary>
+        public bool ManageSubscriptions;
+
+        /// <summary>
+        /// True, if you want to only display labels that the contact is subscribed to on your unsubscribe form. Otherwise, false
+        /// </summary>
+        public bool ManageSubscribedOnly;
 
         /// <summary>
         /// True, if you want to apply custom headers to your emails. Otherwise, false

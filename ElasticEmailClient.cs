@@ -262,7 +262,7 @@ namespace ElasticEmailClient
             /// <param name="credits">Amount of credits to add</param>
             /// <param name="notes">Specific notes about the transaction</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="publicAccountID">Public key of sub-account to add credits to. Use subAccountEmail or publicAccountID not both.</param>
             public static void AddSubAccountCredits(string creditType, int credits, string notes, string subAccountEmail = null, string publicAccountID = null)
             {
                 WebClient client = new CustomWebClient();
@@ -324,7 +324,7 @@ namespace ElasticEmailClient
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="notify">True, if you want to send an email notification. Otherwise, false</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="publicAccountID">Public key of sub-account to delete. Use subAccountEmail or publicAccountID not both.</param>
             public static void DeleteSubAccount(bool notify = true, string subAccountEmail = null, string publicAccountID = null)
             {
                 WebClient client = new CustomWebClient();
@@ -342,15 +342,15 @@ namespace ElasticEmailClient
             /// Returns API Key for the given Sub Account.
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
-            /// <param name="subaccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="subAccountEmail">Email address of sub-account</param>
+            /// <param name="publicAccountID">Public key of sub-account to retrieve sub-account API Key. Use subAccountEmail or publicAccountID not both.</param>
             /// <returns>string</returns>
-            public static string GetSubAccountApiKey(string subaccountEmail = null, string publicAccountID = null)
+            public static string GetSubAccountApiKey(string subAccountEmail = null, string publicAccountID = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
-                if (subaccountEmail != null) values.Add("subaccountEmail", subaccountEmail);
+                if (subAccountEmail != null) values.Add("subAccountEmail", subAccountEmail);
                 if (publicAccountID != null) values.Add("publicAccountID", publicAccountID);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/account/getsubaccountapikey", values);
                 ApiResponse<string> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<string>>(Encoding.UTF8.GetString(apiResponse));
@@ -571,7 +571,7 @@ namespace ElasticEmailClient
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="publicAccountID">Public key of sub-account to list history for. Use subAccountEmail or publicAccountID not both.</param>
             /// <returns>List(ApiTypes.EmailCredits)</returns>
             public static List<ApiTypes.EmailCredits> LoadSubAccountsEmailCreditsHistory(string subAccountEmail = null, string publicAccountID = null)
             {
@@ -590,15 +590,15 @@ namespace ElasticEmailClient
             /// Loads settings of subaccount
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
-            /// <param name="subAccountemail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="subAccountEmail">Email address of sub-account</param>
+            /// <param name="publicAccountID">Public key of sub-account to load settings for. Use subAccountEmail or publicAccountID not both.</param>
             /// <returns>ApiTypes.SubAccountSettings</returns>
-            public static ApiTypes.SubAccountSettings LoadSubAccountSettings(string subAccountemail = null, string publicAccountID = null)
+            public static ApiTypes.SubAccountSettings LoadSubAccountSettings(string subAccountEmail = null, string publicAccountID = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
-                if (subAccountemail != null) values.Add("subAccountemail", subAccountemail);
+                if (subAccountEmail != null) values.Add("subAccountEmail", subAccountEmail);
                 if (publicAccountID != null) values.Add("publicAccountID", publicAccountID);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/account/loadsubaccountsettings", values);
                 ApiResponse<ApiTypes.SubAccountSettings> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.SubAccountSettings>>(Encoding.UTF8.GetString(apiResponse));
@@ -611,7 +611,7 @@ namespace ElasticEmailClient
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="publicAccountID">Public key of sub-account to list history for. Use subAccountEmail or publicAccountID not both.</param>
             /// <returns>List(ApiTypes.LitmusCredits)</returns>
             public static List<ApiTypes.LitmusCredits> LoadSubAccountsLitmusCreditsHistory(string subAccountEmail = null, string publicAccountID = null)
             {
@@ -707,7 +707,7 @@ namespace ElasticEmailClient
             /// <param name="creditType">Type of credits to add (EmailCredits, TemplateCredits or LitmusCredits</param>
             /// <param name="notes">Specific notes about the transaction</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="publicAccountID">Public key of sub-account to remove credits from. Use subAccountEmail or publicAccountID not both.</param>
             /// <param name="credits">Amount of credits to remove</param>
             /// <param name="removeAll">Remove all credits of this type from sub-account (overrides credits if provided)</param>
             public static void RemoveSubAccountCredits(string creditType, string notes, string subAccountEmail = null, string publicAccountID = null, int? credits = null, bool removeAll = false)
@@ -869,7 +869,7 @@ namespace ElasticEmailClient
             /// <param name="logoUrl">URL to your logo image.</param>
             /// <param name="taxCode">Code used for tax purposes.</param>
             /// <param name="phone">Phone number</param>
-            public static void UpdateProfile(string firstName, string lastName, string company, string address1, string address2, string city, string state, string zip, string countryID, string deliveryReason, bool marketingConsent, string website = null, string logoUrl = null, string taxCode = null, string phone = null)
+            public static void UpdateProfile(string firstName, string lastName, string company, string address1, string address2, string city, string state, string zip, int countryID, string deliveryReason, bool marketingConsent, string website = null, string logoUrl = null, string taxCode = null, string phone = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -882,7 +882,7 @@ namespace ElasticEmailClient
                 values.Add("city", city);
                 values.Add("state", state);
                 values.Add("zip", zip);
-                values.Add("countryID", countryID);
+                values.Add("countryID", countryID.ToString());
                 values.Add("deliveryReason", deliveryReason);
                 values.Add("marketingConsent", marketingConsent.ToString());
                 if (website != null) values.Add("website", website);
@@ -907,7 +907,7 @@ namespace ElasticEmailClient
             /// <param name="enablePrivateIPRequest">True, if account can request for private IP on its own. Otherwise, false</param>
             /// <param name="maxContacts">Maximum number of contacts the account can havelkd</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
-            /// <param name="publicAccountID">Public key for limited access to your account such as contact/add so you can use it safely on public websites.</param>
+            /// <param name="publicAccountID">Public key of sub-account to update. Use subAccountEmail or publicAccountID not both.</param>
             /// <param name="sendingPermission">Sending permission setting for account</param>
             /// <param name="enableContactFeatures">True, if you want to use Advanced Tools.  Otherwise, false</param>
             public static void UpdateSubAccountSettings(bool requiresEmailCredits = false, int monthlyRefillCredits = 0, bool requiresLitmusCredits = false, bool enableLitmusTest = false, int dailySendLimit = 50, int emailSizeLimit = 10, bool enablePrivateIPRequest = false, int maxContacts = 0, string subAccountEmail = null, string publicAccountID = null, ApiTypes.SendingPermission? sendingPermission = null, bool? enableContactFeatures = null)
@@ -2013,7 +2013,7 @@ namespace ElasticEmailClient
             /// <param name="lists">The name of a contact list you would like to send to. Separate multiple contact lists by commas or semicolons.</param>
             /// <param name="segments">The name of a segment you would like to send to. Separate multiple segments by comma or semicolon. Input "0" for "All Contacts".</param>
             /// <param name="mergeSourceFilename">File name one of attachments which is a CSV list of Recipients.</param>
-            /// <param name="channel">An ID field (max 60 chars) that can be used for reporting [will default to HTTP API or SMTP API]</param>
+            /// <param name="channel">An ID field (max 191 chars) that can be used for reporting [will default to HTTP API or SMTP API]</param>
             /// <param name="bodyHtml">Html email body</param>
             /// <param name="bodyText">Text email body</param>
             /// <param name="charset">Text value of charset encoding for example: iso-8859-1, windows-1251, utf-8, us-ascii, windows-1250 and more…</param>
@@ -2524,7 +2524,8 @@ namespace ElasticEmailClient
             /// <param name="offset">How many items should be loaded ahead.</param>
             /// <param name="compressionFormat">FileResponse compression format. None or Zip.</param>
             /// <param name="fileName">Name of your file.</param>
-            public static void ExportLinkTracking(int channelID, DateTime? from, DateTime? to, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, int limit = 0, int offset = 0, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null)
+            /// <returns>ApiTypes.ExportLink</returns>
+            public static ApiTypes.ExportLink ExportLinkTracking(int channelID, DateTime? from, DateTime? to, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, int limit = 0, int offset = 0, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -2538,8 +2539,9 @@ namespace ElasticEmailClient
                 if (compressionFormat != ApiTypes.CompressionFormat.None) values.Add("compressionFormat", compressionFormat.ToString());
                 if (fileName != null) values.Add("fileName", fileName);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/log/exportlinktracking", values);
-                ApiResponse<VoidApiResponse> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<VoidApiResponse>>(Encoding.UTF8.GetString(apiResponse));
+                ApiResponse<ApiTypes.ExportLink> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.ExportLink>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
             }
 
             /// <summary>

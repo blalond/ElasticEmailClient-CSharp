@@ -2341,6 +2341,28 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
+            /// Create a new list from the recipients of the given campaign, using the given statuses of Messages
+            /// </summary>
+            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <param name="campaignID">ID of the campaign which recipients you want to copy</param>
+            /// <param name="listName">Name of your list.</param>
+            /// <param name="statuses">Statuses of a campaign's emails you want to include in the new list (but NOT the contacts' statuses)</param>
+            /// <returns>int</returns>
+            public static int CreateFromCampaign(int campaignID, string listName, IEnumerable<ApiTypes.LogJobStatus> statuses = null)
+            {
+                WebClient client = new CustomWebClient();
+                NameValueCollection values = new NameValueCollection();
+                values.Add("apikey", Api.ApiKey);
+                values.Add("campaignID", campaignID.ToString());
+                values.Add("listName", listName);
+                if (statuses != null) values.Add("statuses", string.Join(",", statuses));
+                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/list/createfromcampaign", values);
+                ApiResponse<int> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<int>>(Encoding.UTF8.GetString(apiResponse));
+                if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
+            }
+
+            /// <summary>
             /// Create a series of nth selection lists from an existing list or segment
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
@@ -3761,6 +3783,11 @@ namespace ElasticEmailClient
         /// True, if you want to display an option for the contact to opt into transactional email only on your unsubscribe form. Otherwise, false
         /// </summary>
         public bool TransactionalOnUnsubscribe;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string PreviewMessageID;
 
         /// <summary>
         /// True, if you want to apply custom headers to your emails. Otherwise, false

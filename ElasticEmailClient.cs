@@ -1,3 +1,27 @@
+/*
+The MIT License (MIT)
+
+Copyright (c) 2016-2017 Elastic Email, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -228,7 +252,7 @@ namespace ElasticEmailClient
             /// <param name="returnUrl">URL to navigate to after account creation</param>
             /// <param name="sendingPermission">Sending permission setting for account</param>
             /// <param name="enableContactFeatures">True, if you want to use Advanced Tools.  Otherwise, false</param>
-            /// <param name="poolName">Name of your custom IP Pool to be used to send this campaign</param>
+            /// <param name="poolName">Private IP required. Name of the custom IP Pool which Sub Account should use to send its emails. Leave empty for the default one or if no Private IPs have been bought</param>
             /// <returns>string</returns>
             public static string AddSubAccount(string email, string password, string confirmPassword, bool requiresEmailCredits = false, bool enableLitmusTest = false, bool requiresLitmusCredits = false, int maxContacts = 0, bool enablePrivateIPRequest = true, bool sendActivation = false, string returnUrl = null, ApiTypes.SendingPermission? sendingPermission = null, bool? enableContactFeatures = null, string poolName = null)
             {
@@ -258,19 +282,19 @@ namespace ElasticEmailClient
             /// Add email, template or litmus credits to a sub-account
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
-            /// <param name="creditType">Type of credits to add (EmailCredits, TemplateCredits or LitmusCredits</param>
             /// <param name="credits">Amount of credits to add</param>
             /// <param name="notes">Specific notes about the transaction</param>
+            /// <param name="creditType">Type of credits to add (Email or Litmus)</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
             /// <param name="publicAccountID">Public key of sub-account to add credits to. Use subAccountEmail or publicAccountID not both.</param>
-            public static void AddSubAccountCredits(string creditType, int credits, string notes, string subAccountEmail = null, string publicAccountID = null)
+            public static void AddSubAccountCredits(int credits, string notes, ApiTypes.CreditType creditType = ApiTypes.CreditType.Email, string subAccountEmail = null, string publicAccountID = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
-                values.Add("creditType", creditType);
                 values.Add("credits", credits.ToString());
                 values.Add("notes", notes);
+                if (creditType != ApiTypes.CreditType.Email) values.Add("creditType", creditType.ToString());
                 if (subAccountEmail != null) values.Add("subAccountEmail", subAccountEmail);
                 if (publicAccountID != null) values.Add("publicAccountID", publicAccountID);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/account/addsubaccountcredits", values);
@@ -699,39 +723,21 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
-            /// Purchase a private IP for your Account
-            /// </summary>
-            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
-            /// <param name="region">Region of the IP Address (NA and EU currently available)</param>
-            /// <returns>ApiTypes.PrivateIP</returns>
-            public static ApiTypes.PrivateIP PurchasePrivateIP(string region = null)
-            {
-                WebClient client = new CustomWebClient();
-                NameValueCollection values = new NameValueCollection();
-                values.Add("apikey", Api.ApiKey);
-                if (region != null) values.Add("region", region);
-                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/account/purchaseprivateip", values);
-                ApiResponse<ApiTypes.PrivateIP> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.PrivateIP>>(Encoding.UTF8.GetString(apiResponse));
-                if (!apiRet.success) throw new ApplicationException(apiRet.error);
-                return apiRet.Data;
-            }
-
-            /// <summary>
             /// Remove email, template or litmus credits from a sub-account
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
-            /// <param name="creditType">Type of credits to add (EmailCredits, TemplateCredits or LitmusCredits</param>
+            /// <param name="creditType">Type of credits to add (Email or Litmus)</param>
             /// <param name="notes">Specific notes about the transaction</param>
             /// <param name="subAccountEmail">Email address of sub-account</param>
             /// <param name="publicAccountID">Public key of sub-account to remove credits from. Use subAccountEmail or publicAccountID not both.</param>
             /// <param name="credits">Amount of credits to remove</param>
             /// <param name="removeAll">Remove all credits of this type from sub-account (overrides credits if provided)</param>
-            public static void RemoveSubAccountCredits(string creditType, string notes, string subAccountEmail = null, string publicAccountID = null, int? credits = null, bool removeAll = false)
+            public static void RemoveSubAccountCredits(ApiTypes.CreditType creditType, string notes, string subAccountEmail = null, string publicAccountID = null, int? credits = null, bool removeAll = false)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
-                values.Add("creditType", creditType);
+                values.Add("creditType", creditType.ToString());
                 values.Add("notes", notes);
                 if (subAccountEmail != null) values.Add("subAccountEmail", subAccountEmail);
                 if (publicAccountID != null) values.Add("publicAccountID", publicAccountID);
@@ -790,8 +796,11 @@ namespace ElasticEmailClient
             /// <param name="enableUITooltips">True, if account has tooltips active. Otherwise, false</param>
             /// <param name="enableContactFeatures">True, if you want to use Advanced Tools.  Otherwise, false</param>
             /// <param name="notificationsEmails">Email addresses to send a copy of all notifications from our system. Separated by semicolon</param>
+            /// <param name="unsubscribeNotificationsEmails">Emails, separated by semicolon, to which the notification about contact unsubscribing should be sent to</param>
+            /// <param name="logoUrl">URL to your logo image.</param>
+            /// <param name="enableTemplateScripting">True, if you want to use template scripting in your emails {{}}. Otherwise, false</param>
             /// <returns>ApiTypes.AdvancedOptions</returns>
-            public static ApiTypes.AdvancedOptions UpdateAdvancedOptions(bool? enableClickTracking = null, bool? enableLinkClickTracking = null, bool? manageSubscriptions = null, bool? manageSubscribedOnly = null, bool? transactionalOnUnsubscribe = null, bool? skipListUnsubscribe = null, bool? autoTextFromHtml = null, bool? allowCustomHeaders = null, string bccEmail = "", string contentTransferEncoding = null, bool? emailNotificationForError = null, string emailNotificationEmail = "", string webNotificationUrl = "", bool? webNotificationForSent = null, bool? webNotificationForOpened = null, bool? webNotificationForClicked = null, bool? webNotificationForUnsubscribed = null, bool? webNotificationForAbuseReport = null, bool? webNotificationForError = null, string hubCallBackUrl = "", string inboundDomain = "", bool? inboundContactsOnly = null, bool? lowCreditNotification = null, bool? enableUITooltips = null, bool? enableContactFeatures = null, string notificationsEmails = "")
+            public static ApiTypes.AdvancedOptions UpdateAdvancedOptions(bool? enableClickTracking = null, bool? enableLinkClickTracking = null, bool? manageSubscriptions = null, bool? manageSubscribedOnly = null, bool? transactionalOnUnsubscribe = null, bool? skipListUnsubscribe = null, bool? autoTextFromHtml = null, bool? allowCustomHeaders = null, string bccEmail = "", string contentTransferEncoding = null, bool? emailNotificationForError = null, string emailNotificationEmail = "", string webNotificationUrl = "", bool? webNotificationForSent = null, bool? webNotificationForOpened = null, bool? webNotificationForClicked = null, bool? webNotificationForUnsubscribed = null, bool? webNotificationForAbuseReport = null, bool? webNotificationForError = null, string hubCallBackUrl = "", string inboundDomain = "", bool? inboundContactsOnly = null, bool? lowCreditNotification = null, bool? enableUITooltips = null, bool? enableContactFeatures = null, string notificationsEmails = "", string unsubscribeNotificationsEmails = "", string logoUrl = "", bool? enableTemplateScripting = true)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -822,6 +831,9 @@ namespace ElasticEmailClient
                 if (enableUITooltips != null) values.Add("enableUITooltips", enableUITooltips.ToString());
                 if (enableContactFeatures != null) values.Add("enableContactFeatures", enableContactFeatures.ToString());
                 if (notificationsEmails != "") values.Add("notificationsEmails", notificationsEmails);
+                if (unsubscribeNotificationsEmails != "") values.Add("unsubscribeNotificationsEmails", unsubscribeNotificationsEmails);
+                if (logoUrl != "") values.Add("logoUrl", logoUrl);
+                if (enableTemplateScripting != true) values.Add("enableTemplateScripting", enableTemplateScripting.ToString());
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/account/updateadvancedoptions", values);
                 ApiResponse<ApiTypes.AdvancedOptions> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.AdvancedOptions>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -880,35 +892,35 @@ namespace ElasticEmailClient
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="firstName">First name.</param>
             /// <param name="lastName">Last name.</param>
-            /// <param name="company">Company name.</param>
             /// <param name="address1">First line of address.</param>
-            /// <param name="address2">Second line of address.</param>
             /// <param name="city">City.</param>
             /// <param name="state">State or province.</param>
             /// <param name="zip">Zip/postal code.</param>
-            /// <param name="countryID">Numeric ID of country.</param>
+            /// <param name="countryID">Numeric ID of country. A file with the list of countries is available <a href="http://api.elasticemail.com/public/countries"><b>here</b></a></param>
             /// <param name="deliveryReason">Why your clients are receiving your emails.</param>
             /// <param name="marketingConsent">True if you want to receive newsletters from Elastic Email. Otherwise, false.</param>
+            /// <param name="address2">Second line of address.</param>
+            /// <param name="company">Company name.</param>
             /// <param name="website">HTTP address of your website.</param>
             /// <param name="logoUrl">URL to your logo image.</param>
             /// <param name="taxCode">Code used for tax purposes.</param>
             /// <param name="phone">Phone number</param>
-            public static void UpdateProfile(string firstName, string lastName, string company, string address1, string address2, string city, string state, string zip, int countryID, string deliveryReason, bool marketingConsent, string website = null, string logoUrl = null, string taxCode = null, string phone = null)
+            public static void UpdateProfile(string firstName, string lastName, string address1, string city, string state, string zip, int countryID, string deliveryReason = null, bool marketingConsent = false, string address2 = null, string company = null, string website = null, string logoUrl = null, string taxCode = null, string phone = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
                 values.Add("firstName", firstName);
                 values.Add("lastName", lastName);
-                values.Add("company", company);
                 values.Add("address1", address1);
-                values.Add("address2", address2);
                 values.Add("city", city);
                 values.Add("state", state);
                 values.Add("zip", zip);
                 values.Add("countryID", countryID.ToString());
-                values.Add("deliveryReason", deliveryReason);
-                values.Add("marketingConsent", marketingConsent.ToString());
+                if (deliveryReason != null) values.Add("deliveryReason", deliveryReason);
+                if (marketingConsent != false) values.Add("marketingConsent", marketingConsent.ToString());
+                if (address2 != null) values.Add("address2", address2);
+                if (company != null) values.Add("company", company);
                 if (website != null) values.Add("website", website);
                 if (logoUrl != null) values.Add("logoUrl", logoUrl);
                 if (taxCode != null) values.Add("taxCode", taxCode);
@@ -934,7 +946,7 @@ namespace ElasticEmailClient
             /// <param name="publicAccountID">Public key of sub-account to update. Use subAccountEmail or publicAccountID not both.</param>
             /// <param name="sendingPermission">Sending permission setting for account</param>
             /// <param name="enableContactFeatures">True, if you want to use Advanced Tools.  Otherwise, false</param>
-            /// <param name="poolName">Name of your custom IP Pool to be used to send this campaign</param>
+            /// <param name="poolName">Name of your custom IP Pool to be used in the sending process</param>
             public static void UpdateSubAccountSettings(bool requiresEmailCredits = false, int monthlyRefillCredits = 0, bool requiresLitmusCredits = false, bool enableLitmusTest = false, int dailySendLimit = 50, int emailSizeLimit = 10, bool enablePrivateIPRequest = false, int maxContacts = 0, string subAccountEmail = null, string publicAccountID = null, ApiTypes.SendingPermission? sendingPermission = null, bool? enableContactFeatures = null, string poolName = null)
             {
                 WebClient client = new CustomWebClient();
@@ -1001,7 +1013,7 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
-            /// Lists your available Attachments
+            /// Lists your available Attachments in the given email
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="msgID">ID number of selected message.</param>
@@ -1013,6 +1025,22 @@ namespace ElasticEmailClient
                 values.Add("apikey", Api.ApiKey);
                 values.Add("msgID", msgID);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/attachment/list", values);
+                ApiResponse<List<ApiTypes.Attachment>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.Attachment>>>(Encoding.UTF8.GetString(apiResponse));
+                if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
+            }
+
+            /// <summary>
+            /// Lists all your available attachments
+            /// </summary>
+            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <returns>List(ApiTypes.Attachment)</returns>
+            public static List<ApiTypes.Attachment> ListAll()
+            {
+                WebClient client = new CustomWebClient();
+                NameValueCollection values = new NameValueCollection();
+                values.Add("apikey", Api.ApiKey);
+                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/attachment/listall", values);
                 ApiResponse<List<ApiTypes.Attachment>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.Attachment>>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
                 return apiRet.Data;
@@ -1035,7 +1063,7 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
-            /// Uploads selected file to the server using http form upload format (MIME multipart/form-data) or PUT method.
+            /// Uploads selected file to the server using http form upload format (MIME multipart/form-data) or PUT method. The attachments expire after 30 days.
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="attachmentFile">Content of your attachment.</param>
@@ -1368,8 +1396,10 @@ namespace ElasticEmailClient
             /// <param name="sendActivation">True, if you want to send activation email to this account. Otherwise, false</param>
             /// <param name="consentDate">Date of consent to send this contact(s) your email. If not provided current date is used for consent.</param>
             /// <param name="consentIP">IP address of consent to send this contact(s) your email. If not provided your current public IP address is used for consent.</param>
+            /// <param name="field">Custom contact field like firstname, lastname, city etc. Request parameters prefixed by field_ like field_firstname, field_lastname </param>
+            /// <param name="notifyEmail"></param>
             /// <returns>string</returns>
-            public static string Add(string publicAccountID, string email, string[] publicListID = null, string[] listName = null, string title = null, string firstName = null, string lastName = null, string phone = null, string mobileNumber = null, string notes = null, string gender = null, DateTime? birthDate = null, string city = null, string state = null, string postalCode = null, string country = null, string organizationName = null, string website = null, int? annualRevenue = 0, string industry = null, int? numberOfEmployees = 0, ApiTypes.ContactSource source = ApiTypes.ContactSource.ContactApi, string returnUrl = null, string sourceUrl = null, string activationReturnUrl = null, string activationTemplate = null, bool sendActivation = true, DateTime? consentDate = null, string consentIP = null)
+            public static string Add(string publicAccountID, string email, string[] publicListID = null, string[] listName = null, string title = null, string firstName = null, string lastName = null, string phone = null, string mobileNumber = null, string notes = null, string gender = null, DateTime? birthDate = null, string city = null, string state = null, string postalCode = null, string country = null, string organizationName = null, string website = null, int? annualRevenue = 0, string industry = null, int? numberOfEmployees = 0, ApiTypes.ContactSource source = ApiTypes.ContactSource.ContactApi, string returnUrl = null, string sourceUrl = null, string activationReturnUrl = null, string activationTemplate = null, bool sendActivation = true, DateTime? consentDate = null, string consentIP = null, Dictionary<string, string> field = null, string notifyEmail = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -1415,6 +1445,14 @@ namespace ElasticEmailClient
                 if (sendActivation != true) values.Add("sendActivation", sendActivation.ToString());
                 if (consentDate != null) values.Add("consentDate", consentDate.Value.ToString("M/d/yyyy h:mm:ss tt"));
                 if (consentIP != null) values.Add("consentIP", consentIP);
+                if (field != null)
+                {
+                    foreach (KeyValuePair<string, string> _item in field)
+                    {
+                        values.Add("field_" + _item.Key, _item.Value);
+                    }
+                }
+                if (notifyEmail != null) values.Add("notifyEmail", notifyEmail);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/contact/add", values);
                 ApiResponse<string> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<string>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -1639,18 +1677,18 @@ namespace ElasticEmailClient
             /// Load blocked contacts
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
-            /// <param name="search">Text fragment used for searching.</param>
-            /// <param name="status">Name of blocked status: Abuse, Bounced or Unsubscribed</param>
+            /// <param name="statuses">List of comma separated message statuses: 0 or all, 1 for ReadyToSend, 2 for InProgress, 4 for Bounced, 5 for Sent, 6 for Opened, 7 for Clicked, 8 for Unsubscribed, 9 for Abuse Report</param>
+            /// <param name="search">List of blocked statuses: Abuse, Bounced or Unsubscribed</param>
             /// <param name="limit">Maximum of loaded items.</param>
             /// <param name="offset">How many items should be loaded ahead.</param>
             /// <returns>List(ApiTypes.BlockedContact)</returns>
-            public static List<ApiTypes.BlockedContact> LoadBlocked(string search, ApiTypes.ContactStatus? status = null, int limit = 0, int offset = 0)
+            public static List<ApiTypes.BlockedContact> LoadBlocked(IEnumerable<ApiTypes.ContactStatus> statuses, string search = null, int limit = 0, int offset = 0)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
-                values.Add("search", search);
-                if (status != null) values.Add("status", Newtonsoft.Json.JsonConvert.SerializeObject(status));
+                values.Add("statuses", string.Join(",", statuses));
+                if (search != null) values.Add("search", search);
                 if (limit != 0) values.Add("limit", limit.ToString());
                 if (offset != 0) values.Add("offset", offset.ToString());
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/contact/loadblocked", values);
@@ -1713,12 +1751,14 @@ namespace ElasticEmailClient
             /// <param name="country">Name of country.</param>
             /// <param name="state">State or province.</param>
             /// <param name="zip">Zip/postal code.</param>
-            /// <param name="listID">ID number of selected list.</param>
+            /// <param name="publicListID">ID code of list</param>
+            /// <param name="listName">Name of your list.</param>
             /// <param name="status">Name of status: Active, Engaged, Inactive, Abuse, Bounced, Unsubscribed.</param>
             /// <param name="notes">Free form field of notes</param>
             /// <param name="consentDate">Date of consent to send this contact(s) your email. If not provided current date is used for consent.</param>
             /// <param name="consentIP">IP address of consent to send this contact(s) your email. If not provided your current public IP address is used for consent.</param>
-            public static void QuickAdd(IEnumerable<string> emails, string firstName = null, string lastName = null, string title = null, string organization = null, string industry = null, string city = null, string country = null, string state = null, string zip = null, int listID = 0, ApiTypes.ContactStatus status = ApiTypes.ContactStatus.Active, string notes = null, DateTime? consentDate = null, string consentIP = null)
+            /// <param name="notifyEmail"></param>
+            public static void QuickAdd(IEnumerable<string> emails, string firstName = null, string lastName = null, string title = null, string organization = null, string industry = null, string city = null, string country = null, string state = null, string zip = null, string publicListID = null, string listName = null, ApiTypes.ContactStatus status = ApiTypes.ContactStatus.Active, string notes = null, DateTime? consentDate = null, string consentIP = null, string notifyEmail = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -1733,11 +1773,13 @@ namespace ElasticEmailClient
                 if (country != null) values.Add("country", country);
                 if (state != null) values.Add("state", state);
                 if (zip != null) values.Add("zip", zip);
-                if (listID != 0) values.Add("listID", listID.ToString());
+                if (publicListID != null) values.Add("publicListID", publicListID);
+                if (listName != null) values.Add("listName", listName);
                 if (status != ApiTypes.ContactStatus.Active) values.Add("status", status.ToString());
                 if (notes != null) values.Add("notes", notes);
                 if (consentDate != null) values.Add("consentDate", consentDate.Value.ToString("M/d/yyyy h:mm:ss tt"));
                 if (consentIP != null) values.Add("consentIP", consentIP);
+                if (notifyEmail != null) values.Add("notifyEmail", notifyEmail);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/contact/quickadd", values);
                 ApiResponse<VoidApiResponse> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<VoidApiResponse>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -1748,7 +1790,6 @@ namespace ElasticEmailClient
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="email">Proper email address.</param>
-            /// <param name="newEmail">New email address.</param>
             /// <param name="firstName">First name.</param>
             /// <param name="lastName">Last name.</param>
             /// <param name="organizationName">Name of organization</param>
@@ -1780,14 +1821,14 @@ namespace ElasticEmailClient
             /// <param name="pageViews">Number of page views</param>
             /// <param name="visits">Number of website visits</param>
             /// <param name="clearRestOfFields"></param>
+            /// <param name="field">Custom contact field like firstname, lastname, city etc. Request parameters prefixed by field_ like field_firstname, field_lastname </param>
             /// <returns>ApiTypes.Contact</returns>
-            public static ApiTypes.Contact Update(string email, string newEmail = null, string firstName = null, string lastName = null, string organizationName = null, string title = null, string city = null, string state = null, string country = null, string zip = null, string birthDate = null, string gender = null, string phone = null, string activate = null, string industry = null, int numberOfEmployees = 0, string annualRevenue = null, int purchaseCount = 0, string firstPurchase = null, string lastPurchase = null, string notes = null, string websiteUrl = null, string mobileNumber = null, string faxNumber = null, string linkedInBio = null, int linkedInConnections = 0, string twitterBio = null, string twitterUsername = null, string twitterProfilePhoto = null, int twitterFollowerCount = 0, int pageViews = 0, int visits = 0, bool clearRestOfFields = true)
+            public static ApiTypes.Contact Update(string email, string firstName = null, string lastName = null, string organizationName = null, string title = null, string city = null, string state = null, string country = null, string zip = null, string birthDate = null, string gender = null, string phone = null, string activate = null, string industry = null, int numberOfEmployees = 0, string annualRevenue = null, int purchaseCount = 0, string firstPurchase = null, string lastPurchase = null, string notes = null, string websiteUrl = null, string mobileNumber = null, string faxNumber = null, string linkedInBio = null, int linkedInConnections = 0, string twitterBio = null, string twitterUsername = null, string twitterProfilePhoto = null, int twitterFollowerCount = 0, int pageViews = 0, int visits = 0, bool clearRestOfFields = true, Dictionary<string, string> field = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
                 values.Add("email", email);
-                if (newEmail != null) values.Add("newEmail", newEmail);
                 if (firstName != null) values.Add("firstName", firstName);
                 if (lastName != null) values.Add("lastName", lastName);
                 if (organizationName != null) values.Add("organizationName", organizationName);
@@ -1819,6 +1860,13 @@ namespace ElasticEmailClient
                 if (pageViews != 0) values.Add("pageViews", pageViews.ToString());
                 if (visits != 0) values.Add("visits", visits.ToString());
                 if (clearRestOfFields != true) values.Add("clearRestOfFields", clearRestOfFields.ToString());
+                if (field != null)
+                {
+                    foreach (KeyValuePair<string, string> _item in field)
+                    {
+                        values.Add("field_" + _item.Key, _item.Value);
+                    }
+                }
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/contact/update", values);
                 ApiResponse<ApiTypes.Contact> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.Contact>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -2034,7 +2082,7 @@ namespace ElasticEmailClient
             }
 
             /// <summary>
-            /// Submit emails
+            /// Submit emails. The HTTP POST request is suggested. The default, maximum (accepted by us) size of an email is 10 MB in total, with or without attachments included. For suggested implementations please refer to https://elasticemail.com/support/http-api/
             /// </summary>
             /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
             /// <param name="subject">Email subject</param>
@@ -2062,14 +2110,14 @@ namespace ElasticEmailClient
             /// <param name="encodingType">0 for None, 1 for Raw7Bit, 2 for Raw8Bit, 3 for QuotedPrintable, 4 for Base64 (Default), 5 for Uue  note that you can also provide the text version such as "Raw7Bit" for value 1.  NOTE: Base64 or QuotedPrintable is recommended if you are validating your domain(s) with DKIM.</param>
             /// <param name="template">The name of an email template you have created in your account.</param>
             /// <param name="attachmentFiles">Attachment files. These files should be provided with the POST multipart file upload, not directly in the request's URL. Should also include merge CSV file</param>
-            /// <param name="headers_customheadername">Optional Custom Headers. Request parameters prefixed by headers_ like headers_customheader1, headers_customheader2. Note: a space is required after the colon before the custom header value. headers_customheader1=customheader1: header-value1 headers_customheader2 = customheader2: header-value2</param>
+            /// <param name="headers">Optional Custom Headers. Request parameters prefixed by headers_ like headers_customheader1, headers_customheader2. Note: a space is required after the colon before the custom header value. headers_xmailer=xmailer: header-value1</param>
             /// <param name="postBack">Optional header returned in notifications.</param>
             /// <param name="merge">Request parameters prefixed by merge_ like merge_firstname, merge_lastname. If sending to a template you can send merge_ fields to merge data with the template. Template fields are entered with {firstname}, {lastname} etc.</param>
             /// <param name="timeOffSetMinutes">Number of minutes in the future this email should be sent</param>
-            /// <param name="poolName">Name of your custom IP Pool to be used to send this campaign</param>
+            /// <param name="poolName">Name of your custom IP Pool to be used in the sending process</param>
             /// <param name="isTransactional">True, if email is transactional (non-bulk, non-marketing, non-commercial). Otherwise, false</param>
             /// <returns>ApiTypes.EmailSend</returns>
-            public static ApiTypes.EmailSend Send(string subject = null, string from = null, string fromName = null, string sender = null, string senderName = null, string msgFrom = null, string msgFromName = null, string replyTo = null, string replyToName = null, IEnumerable<string> to = null, string[] msgTo = null, string[] msgCC = null, string[] msgBcc = null, IEnumerable<string> lists = null, IEnumerable<string> segments = null, string mergeSourceFilename = null, string channel = null, string bodyHtml = null, string bodyText = null, string charset = null, string charsetBodyHtml = null, string charsetBodyText = null, ApiTypes.EncodingType encodingType = ApiTypes.EncodingType.None, string template = null, IEnumerable<ApiTypes.FileData> attachmentFiles = null, Dictionary<string, string> headers_customheadername = null, string postBack = null, Dictionary<string, string> merge = null, string timeOffSetMinutes = null, string poolName = null, bool isTransactional = false)
+            public static ApiTypes.EmailSend Send(string subject = null, string from = null, string fromName = null, string sender = null, string senderName = null, string msgFrom = null, string msgFromName = null, string replyTo = null, string replyToName = null, IEnumerable<string> to = null, string[] msgTo = null, string[] msgCC = null, string[] msgBcc = null, IEnumerable<string> lists = null, IEnumerable<string> segments = null, string mergeSourceFilename = null, string channel = null, string bodyHtml = null, string bodyText = null, string charset = null, string charsetBodyHtml = null, string charsetBodyText = null, ApiTypes.EncodingType encodingType = ApiTypes.EncodingType.None, string template = null, IEnumerable<ApiTypes.FileData> attachmentFiles = null, Dictionary<string, string> headers = null, string postBack = null, Dictionary<string, string> merge = null, string timeOffSetMinutes = null, string poolName = null, bool isTransactional = false)
             {
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
@@ -2115,11 +2163,11 @@ namespace ElasticEmailClient
                 if (charsetBodyText != null) values.Add("charsetBodyText", charsetBodyText);
                 if (encodingType != ApiTypes.EncodingType.None) values.Add("encodingType", encodingType.ToString());
                 if (template != null) values.Add("template", template);
-                if (headers_customheadername != null)
+                if (headers != null)
                 {
-                    foreach (KeyValuePair<string, string> _item in headers_customheadername)
+                    foreach (KeyValuePair<string, string> _item in headers)
                     {
-                        values.Add("headers_customheadername_" + _item.Key, _item.Value);
+                        values.Add("headers_" + _item.Key, _item.Value);
                     }
                 }
                 if (postBack != null) values.Add("postBack", postBack);
@@ -2501,14 +2549,18 @@ namespace ElasticEmailClient
             /// <param name="oldListName">The name of the list from which the contacts will be copied from</param>
             /// <param name="newListName">The name of the list to copy the contacts to</param>
             /// <param name="emails">Comma delimited list of contact emails</param>
-            public static void MoveContacts(string oldListName, string newListName, IEnumerable<string> emails)
+            /// <param name="moveAll">TRUE - moves all contacts; FALSE - moves contacts provided in the 'emails' parameter. This is ignored if the 'statuses' parameter has been provided</param>
+            /// <param name="statuses">List of contact statuses which are eligible to move. This ignores the 'moveAll' parameter</param>
+            public static void MoveContacts(string oldListName, string newListName, IEnumerable<string> emails = null, bool? moveAll = null, IEnumerable<ApiTypes.ContactStatus> statuses = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
                 values.Add("apikey", Api.ApiKey);
                 values.Add("oldListName", oldListName);
                 values.Add("newListName", newListName);
-                values.Add("emails", string.Join(",", emails));
+                if (emails != null) values.Add("emails", string.Join(",", emails));
+                if (moveAll != null) values.Add("moveAll", moveAll.ToString());
+                if (statuses != null) values.Add("statuses", string.Join(",", statuses));
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/list/movecontacts", values);
                 ApiResponse<VoidApiResponse> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<VoidApiResponse>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
@@ -2600,7 +2652,7 @@ namespace ElasticEmailClient
             /// <param name="fileName">Name of your file.</param>
             /// <param name="email">Proper email address.</param>
             /// <returns>ApiTypes.ExportLink</returns>
-            public static ApiTypes.ExportLink Export(IEnumerable<ApiTypes.LogJobStatus> statuses, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, DateTime? from = null, DateTime? to = null, int channelID = 0, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<int> messageCategory = null, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null, string email = null)
+            public static ApiTypes.ExportLink Export(IEnumerable<ApiTypes.LogJobStatus> statuses, ApiTypes.ExportFileFormats fileFormat = ApiTypes.ExportFileFormats.Csv, DateTime? from = null, DateTime? to = null, int channelID = 0, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<ApiTypes.MessageCategory> messageCategory = null, ApiTypes.CompressionFormat compressionFormat = ApiTypes.CompressionFormat.None, string fileName = null, string email = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -2694,10 +2746,10 @@ namespace ElasticEmailClient
             /// <param name="offset">How many items should be loaded ahead.</param>
             /// <param name="includeEmail">True: Search includes emails. Otherwise, false.</param>
             /// <param name="includeSms">True: Search includes SMS. Otherwise, false.</param>
-            /// <param name="messagecategory">ID of message category</param>
+            /// <param name="messageCategory">ID of message category</param>
             /// <param name="email">Proper email address.</param>
             /// <returns>ApiTypes.Log</returns>
-            public static ApiTypes.Log Load(IEnumerable<ApiTypes.LogJobStatus> statuses, DateTime? from = null, DateTime? to = null, string channelName = null, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<int> messagecategory = null, string email = null)
+            public static ApiTypes.Log Load(IEnumerable<ApiTypes.LogJobStatus> statuses, DateTime? from = null, DateTime? to = null, string channelName = null, int limit = 0, int offset = 0, bool includeEmail = true, bool includeSms = true, IEnumerable<ApiTypes.MessageCategory> messageCategory = null, string email = null)
             {
                 WebClient client = new CustomWebClient();
                 NameValueCollection values = new NameValueCollection();
@@ -2710,7 +2762,7 @@ namespace ElasticEmailClient
                 if (offset != 0) values.Add("offset", offset.ToString());
                 if (includeEmail != true) values.Add("includeEmail", includeEmail.ToString());
                 if (includeSms != true) values.Add("includeSms", includeSms.ToString());
-                if (messagecategory != null) values.Add("messagecategory", string.Join(",", messagecategory));
+                if (messageCategory != null) values.Add("messageCategory", string.Join(",", messageCategory));
                 if (email != null) values.Add("email", email);
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/log/load", values);
                 ApiResponse<ApiTypes.Log> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<ApiTypes.Log>>(Encoding.UTF8.GetString(apiResponse));
@@ -2869,6 +2921,30 @@ namespace ElasticEmailClient
                 if (from != null) values.Add("from", from.Value.ToString("M/d/yyyy h:mm:ss tt"));
                 if (to != null) values.Add("to", to.Value.ToString("M/d/yyyy h:mm:ss tt"));
                 byte[] apiResponse = client.UploadValues(Api.ApiUri + "/segment/list", values);
+                ApiResponse<List<ApiTypes.Segment>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.Segment>>>(Encoding.UTF8.GetString(apiResponse));
+                if (!apiRet.success) throw new ApplicationException(apiRet.error);
+                return apiRet.Data;
+            }
+
+            /// <summary>
+            /// Lists your available Segments using the provided names
+            /// </summary>
+            /// <param name="apikey">ApiKey that gives you access to our SMTP and HTTP API's.</param>
+            /// <param name="segmentNames">Names of segments you want to load. Will load all contacts if left empty or the 'All Contacts' name has been provided</param>
+            /// <param name="includeHistory">True: Include history of last 30 days. Otherwise, false.</param>
+            /// <param name="from">From what date should the segment history be shown</param>
+            /// <param name="to">To what date should the segment history be shown</param>
+            /// <returns>List(ApiTypes.Segment)</returns>
+            public static List<ApiTypes.Segment> LoadByName(IEnumerable<string> segmentNames, bool includeHistory = false, DateTime? from = null, DateTime? to = null)
+            {
+                WebClient client = new CustomWebClient();
+                NameValueCollection values = new NameValueCollection();
+                values.Add("apikey", Api.ApiKey);
+                values.Add("segmentNames", string.Join(",", segmentNames));
+                if (includeHistory != false) values.Add("includeHistory", includeHistory.ToString());
+                if (from != null) values.Add("from", from.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                if (to != null) values.Add("to", to.Value.ToString("M/d/yyyy h:mm:ss tt"));
+                byte[] apiResponse = client.UploadValues(Api.ApiUri + "/segment/loadbyname", values);
                 ApiResponse<List<ApiTypes.Segment>> apiRet = Newtonsoft.Json.JsonConvert.DeserializeObject<ApiResponse<List<ApiTypes.Segment>>>(Encoding.UTF8.GetString(apiResponse));
                 if (!apiRet.success) throw new ApplicationException(apiRet.error);
                 return apiRet.Data;
@@ -3414,11 +3490,6 @@ namespace ElasticEmailClient
         public string StatusFormatted;
 
         /// <summary>
-        /// Type of account: 1 for Transactional Email, 2 for Marketing Email.
-        /// </summary>
-        public ApiTypes.AccountType AccountType;
-
-        /// <summary>
         /// URL form for payments.
         /// </summary>
         public string PaymentFormUrl;
@@ -3489,7 +3560,7 @@ namespace ElasticEmailClient
         public string Zip;
 
         /// <summary>
-        /// Numeric ID of country.
+        /// Numeric ID of country. A file with the list of countries is available <a href="http://api.elasticemail.com/public/countries"><b>here</b></a>
         /// </summary>
         public int? CountryID;
 
@@ -3673,23 +3744,6 @@ namespace ElasticEmailClient
     }
 
     /// <summary>
-    /// 
-    /// </summary>
-    public enum AccountType
-    {
-        /// <summary>
-        /// Account is used for sending transactional mail only.
-        /// </summary>
-        Transactional = 1,
-
-        /// <summary>
-        /// Account is used for sending bulk marketing email
-        /// </summary>
-        Marketing = 2,
-
-    }
-
-    /// <summary>
     /// Lists advanced sending options of your account.
     /// </summary>
     public class AdvancedOptions
@@ -3703,6 +3757,11 @@ namespace ElasticEmailClient
         /// True, if you want to track by link tracking. Otherwise, false
         /// </summary>
         public bool EnableLinkClickTracking;
+
+        /// <summary>
+        /// True, if you want to use template scripting in your emails {{}}. Otherwise, false
+        /// </summary>
+        public bool EnableTemplateScripting;
 
         /// <summary>
         /// True, if text BODY of message should be created automatically. Otherwise, false
@@ -3815,6 +3874,11 @@ namespace ElasticEmailClient
         public string NotificationsEmails;
 
         /// <summary>
+        /// Emails, separated by semicolon, to which the notification about contact unsubscribing should be sent to
+        /// </summary>
+        public string UnsubscribeNotificationEmails;
+
+        /// <summary>
         /// URL address to receive web notifications to parse and process.
         /// </summary>
         public string WebNotificationUrl;
@@ -3838,6 +3902,11 @@ namespace ElasticEmailClient
         /// True, if you want to use Advanced Tools.  Otherwise, false
         /// </summary>
         public bool EnableContactFeatures;
+
+        /// <summary>
+        /// URL to your logo image.
+        /// </summary>
+        public string LogoUrl;
 
     }
 
@@ -4067,6 +4136,11 @@ namespace ElasticEmailClient
         /// <summary>
         /// 
         /// </summary>
+        public int TimingOption;
+
+        /// <summary>
+        /// 
+        /// </summary>
         public List<ApiTypes.CampaignTemplate> CampaignTemplates;
 
     }
@@ -4092,7 +4166,7 @@ namespace ElasticEmailClient
         public bool IsCampaign;
 
         /// <summary>
-        /// Name of your custom IP Pool to be used to send this campaign
+        /// Name of your custom IP Pool to be used in the sending process
         /// </summary>
         public string PoolName;
 
@@ -4170,6 +4244,11 @@ namespace ElasticEmailClient
         /// Number of minutes between sends during optimization period
         /// </summary>
         public int SplitOptimizationMinutes;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public int TimingOption;
 
         /// <summary>
         /// ID number of template.
@@ -4306,7 +4385,7 @@ namespace ElasticEmailClient
         public ApiTypes.CampaignStatus Status;
 
         /// <summary>
-        /// Name of your custom IP Pool to be used to send this campaign
+        /// Name of your custom IP Pool to be used in the sending process
         /// </summary>
         public string PoolName;
 
@@ -4829,37 +4908,37 @@ namespace ElasticEmailClient
     public enum ContactStatus
     {
         /// <summary>
-        /// 
+        /// Only transactional email can be sent to contacts with this status.
         /// </summary>
         Transactional = -2,
 
         /// <summary>
-        /// Number of engaged contacts
+        /// Contact has had an open or click in the last 6 months.
         /// </summary>
         Engaged = -1,
 
         /// <summary>
-        /// Number of active contacts
+        /// Contact is eligible to be sent to.
         /// </summary>
         Active = 0,
 
         /// <summary>
-        /// Number of bounced messages
+        /// Contact has had a hard bounce and is no longer eligible to be sent to.
         /// </summary>
         Bounced = 1,
 
         /// <summary>
-        /// Number of unsubscribed messages
+        /// Contact has unsubscribed and is no longer eligible to be sent to.
         /// </summary>
         Unsubscribed = 2,
 
         /// <summary>
-        /// Abuses - mails sent to user without their consent
+        /// Contact has complained and is no longer eligible to be sent to.
         /// </summary>
         Abuse = 3,
 
         /// <summary>
-        /// Number of inactive contacts
+        /// Contact has not been activated or has been de-activated and is not eligible to be sent to.
         /// </summary>
         Inactive = 4,
 
@@ -4901,9 +4980,26 @@ namespace ElasticEmailClient
         public long Inactive;
 
         /// <summary>
-        /// 
+        /// Number of transactional contacts
         /// </summary>
         public long Transactional;
+
+    }
+
+    /// <summary>
+    /// Type of credits
+    /// </summary>
+    public enum CreditType
+    {
+        /// <summary>
+        /// Used to send emails.  One credit = one email.
+        /// </summary>
+        Email = 9,
+
+        /// <summary>
+        /// Used to run a litmus test on a template.  1 credit = 1 test.
+        /// </summary>
+        Litmus = 17,
 
     }
 
@@ -5210,9 +5306,14 @@ namespace ElasticEmailClient
         public DateTime Date;
 
         /// <summary>
-        /// Name of email's status
+        /// Value of email's status
         /// </summary>
         public ApiTypes.LogJobStatus Status;
+
+        /// <summary>
+        /// Name of email's status
+        /// </summary>
+        public string StatusName;
 
         /// <summary>
         /// Date of last status change.
@@ -5700,6 +5801,98 @@ namespace ElasticEmailClient
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    public enum MessageCategory
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        Unknown = 0,
+
+        /// <summary>
+        /// 
+        /// </summary>
+        Ignore = 1,
+
+        /// <summary>
+        /// Number of messages marked as SPAM
+        /// </summary>
+        Spam = 2,
+
+        /// <summary>
+        /// Number of blacklisted messages
+        /// </summary>
+        BlackListed = 3,
+
+        /// <summary>
+        /// Number of messages flagged with 'No Mailbox'
+        /// </summary>
+        NoMailbox = 4,
+
+        /// <summary>
+        /// Number of messages flagged with 'Grey Listed'
+        /// </summary>
+        GreyListed = 5,
+
+        /// <summary>
+        /// Number of messages flagged with 'Throttled'
+        /// </summary>
+        Throttled = 6,
+
+        /// <summary>
+        /// Number of messages flagged with 'Timeout'
+        /// </summary>
+        Timeout = 7,
+
+        /// <summary>
+        /// Number of messages flagged with 'Connection Problem'
+        /// </summary>
+        ConnectionProblem = 8,
+
+        /// <summary>
+        /// Number of messages flagged with 'SPF Problem'
+        /// </summary>
+        SPFProblem = 9,
+
+        /// <summary>
+        /// Number of messages flagged with 'Account Problem'
+        /// </summary>
+        AccountProblem = 10,
+
+        /// <summary>
+        /// Number of messages flagged with 'DNS Problem'
+        /// </summary>
+        DNSProblem = 11,
+
+        /// <summary>
+        /// 
+        /// </summary>
+        NotDeliveredCancelled = 12,
+
+        /// <summary>
+        /// Number of messages flagged with 'Code Error'
+        /// </summary>
+        CodeError = 13,
+
+        /// <summary>
+        /// Number of manually cancelled messages
+        /// </summary>
+        ManualCancel = 14,
+
+        /// <summary>
+        /// Number of messages flagged with 'Connection terminated'
+        /// </summary>
+        ConnectionTerminated = 15,
+
+        /// <summary>
+        /// Number of messages flagged with 'Not Delivered'
+        /// </summary>
+        NotDelivered = 16,
+
+    }
+
+    /// <summary>
     /// Queue of notifications
     /// </summary>
     public class NotificationQueue
@@ -5759,33 +5952,6 @@ namespace ElasticEmailClient
     }
 
     /// <summary>
-    /// Private IP Address
-    /// </summary>
-    public class PrivateIP
-    {
-        /// <summary>
-        /// Assigned Private IP address.
-        /// </summary>
-        public string IPAddress;
-
-        /// <summary>
-        /// Link to Sender Score for this IP address to view external reputation.
-        /// </summary>
-        public string SenderScore;
-
-        /// <summary>
-        /// Link to MX ToolBox blacklist check for this IP address.
-        /// </summary>
-        public string MXToolBox;
-
-        /// <summary>
-        /// Configuration information to set up a custom rDNS A record.
-        /// </summary>
-        public string rDNSConfiguration;
-
-    }
-
-    /// <summary>
     /// Basic information about your profile
     /// </summary>
     public class Profile
@@ -5831,7 +5997,7 @@ namespace ElasticEmailClient
         public string Zip;
 
         /// <summary>
-        /// Numeric ID of country.
+        /// Numeric ID of country. A file with the list of countries is available <a href="http://api.elasticemail.com/public/countries"><b>here</b></a>
         /// </summary>
         public int? CountryID;
 
@@ -5935,9 +6101,14 @@ namespace ElasticEmailClient
         public bool ShowCategory;
 
         /// <summary>
-        /// ID of message category
+        /// Name of message category
         /// </summary>
         public string MessageCategory;
+
+        /// <summary>
+        /// ID of message category
+        /// </summary>
+        public ApiTypes.MessageCategory MessageCategoryID;
 
         /// <summary>
         /// Date of last status change.
@@ -6160,11 +6331,6 @@ namespace ElasticEmailClient
         public int SegmentID;
 
         /// <summary>
-        /// ID of selected account.
-        /// </summary>
-        public int AccountID;
-
-        /// <summary>
         /// Filename
         /// </summary>
         public string Name;
@@ -6200,11 +6366,6 @@ namespace ElasticEmailClient
         /// ID number of your segment.
         /// </summary>
         public int SegmentID;
-
-        /// <summary>
-        /// ID of selected account.
-        /// </summary>
-        public int AccountID;
 
         /// <summary>
         /// Date in YYYY-MM-DD format
@@ -6382,11 +6543,6 @@ namespace ElasticEmailClient
     public class SubAccount
     {
         /// <summary>
-        /// ID of selected account.
-        /// </summary>
-        public string AccountID;
-
-        /// <summary>
         /// Public key for limited access to your account such as contact/add so you can use it safely on public websites.
         /// </summary>
         public string PublicAccountID;
@@ -6407,14 +6563,9 @@ namespace ElasticEmailClient
         public string MailerID;
 
         /// <summary>
-        /// Name of your custom IP Pool to be used to send this campaign
+        /// Name of your custom IP Pool to be used in the sending process
         /// </summary>
         public string PoolName;
-
-        /// <summary>
-        /// Type of account: 1 for Transactional Email, 2 for Marketing Email.
-        /// </summary>
-        public ApiTypes.AccountType AccountType;
 
         /// <summary>
         /// Date of last activity on account
@@ -6574,9 +6725,14 @@ namespace ElasticEmailClient
         public ApiTypes.SendingPermission SendingPermission;
 
         /// <summary>
-        /// Name of your custom IP Pool to be used to send this campaign
+        /// Name of your custom IP Pool to be used in the sending process
         /// </summary>
         public string PoolName;
+
+        /// <summary>
+        /// Public key for limited access to your account such as contact/add so you can use it safely on public websites.
+        /// </summary>
+        public string PublicAccountID;
 
     }
 
